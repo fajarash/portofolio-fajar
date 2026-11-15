@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Environment and secrets
+.env
+.env.backup
+.env.local
+.env.*.local
+*.pem
+
+# Laravel
+backend/storage/*.key
+backend/storage/logs/*.log
+backend/bootstrap/cache/*.php
+!backend/bootstrap/cache/.gitignore
+backend/public/hot
+backend/public/storage
+backend/public/build
+backend/.phpunit.result.cache
+backend/storage/framework/views/*.php
+backend/storage/framework/cache/data/*
+!backend/storage/framework/cache/data/.gitignore
+backend/storage/framework/sessions/*
+!backend/storage/framework/sessions/.gitignore
+backend/storage/framework/testing
+backend/.scribe/endpoints.cache/
+
+# Frontend build
+frontend/dist/
+frontend/dist-ssr/
+
+# Logs and caches
+*.log
+.phpunit.cache
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

@@ -1,0 +1,108 @@
+<?php
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Artisan;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ArticleController;
+use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\TagController;
+use App\Http\Controllers\Api\ProjectController;
+use App\Http\Controllers\Api\CertificateController;
+use App\Http\Controllers\Api\ToolController;
+use App\Http\Controllers\Api\HeroController;
+use App\Http\Controllers\Api\AboutController;
+use App\Http\Controllers\Api\ExperienceController;
+use App\Http\Controllers\Api\ContactMessageController;
+
+// ==========================================
+// 1. ENDPOINT PUBLIK (Bisa diakses dari React tanpa login)
+// ==========================================
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'login']);
+
+// Mengizinkan React membaca data (index & show) untuk ditampilkan di portofolio
+Route::apiResource('articles', ArticleController::class)->only(['index', 'show']);
+Route::apiResource('categories', CategoryController::class)->only(['index', 'show']);
+Route::apiResource('tags', TagController::class)->only(['index', 'show']);
+Route::apiResource('projects', ProjectController::class)->only(['index', 'show']);
+Route::apiResource('certificates', CertificateController::class)->only(['index', 'show']);
+Route::apiResource('tools', ToolController::class)->only(['index', 'show']);
+Route::apiResource('experiences', ExperienceController::class)->only(['index', 'show']);
+
+Route::get('/hero', [HeroController::class, 'index']);
+Route::get('/heroes', [HeroController::class, 'index']);
+Route::get('/about', [AboutController::class, 'index']);
+
+// Form Kontak Publik
+Route::post('/messages', [ContactMessageController::class, 'store']);
+
+// Endpoint aman untuk serving media storage dengan header CORS lengkap
+Route::get('/media/{path}', function ($path) {
+    $filePath = storage_path('app/public/' . $path);
+    if (!file_exists($filePath)) {
+        abort(404);
+    }
+    $file = file_get_contents($filePath);
+    $type = mime_content_type($filePath) ?: 'image/jpeg';
+    return response($file, 200, [
+        'Content-Type' => $type,
+        'Access-Control-Allow-Origin' => '*',
+        'Access-Control-Allow-Methods' => 'GET, OPTIONS',
+    ]);
+})->where('path', '.*');
+
+Route::get('/clear-cache', function() {
+    Artisan::call('config:clear');
+    Artisan::call('cache:clear');
+    Artisan::call('route:clear');
+    return response()->json(['message' => 'Cache dan routing berhasil dibersihkan!']);
+});
+
+Route::get('/run-migrate', function() {
+    Artisan::call('migrate', ['--force' => true]);
+    return response()->json([
+        'message' => 'Migrasi database berhasil dijalankan!',
+        'output' => Artisan::output()
+    ]);
+});
+
+Route::get('/run-migrate-fresh', function() {
+    Artisan::call('migrate:fresh', ['--force' => true]);
+    return response()->json([
+        'message' => 'Migrasi fresh database berhasil dijalankan!',
+        'output' => Artisan::output()
+    ]);
+});
+
+// ==========================================
+// 2. ENDPOINT PRIVAT (Ruang Admin - Membutuhkan Token Sanctum)
+// ==========================================
+Route::middleware('auth:sanctum')->group(function () {
+
+    Route::get('/profil', function (Request $request) {
+        return response()->json([
+            'message' => 'Ini adalah data rahasia user',
+            'data' => $request->user()
+        ]);
+    });
+
+    // Mengunci akses Tambah (store), Ubah (update), dan Hapus (destroy)
+    Route::apiResource('articles', ArticleController::class)->except(['index', 'show']);
+    Route::apiResource('categories', CategoryController::class)->except(['index', 'show']);
+    Route::apiResource('tags', TagController::class)->except(['index', 'show']);
+    Route::apiResource('projects', ProjectController::class)->except(['index', 'show']);
+    Route::apiResource('certificates', CertificateController::class)->except(['index', 'show']);
+    Route::apiResource('tools', ToolController::class)->except(['index', 'show']);
+    Route::apiResource('experiences', ExperienceController::class)->except(['index', 'show']);
+
+    // Endpoint simpan / perbarui untuk Hero dan About
+    Route::post('/hero', [HeroController::class, 'update']);
+    Route::post('/heroes', [HeroController::class, 'update']);
+    Route::post('/about', [AboutController::class, 'update']);
+
+    // Manajemen Pesan Masuk (Inbox)
+    Route::get('/messages', [ContactMessageController::class, 'index']);
+    Route::delete('/messages/{id}', [ContactMessageController::class, 'destroy']);
+
+});
